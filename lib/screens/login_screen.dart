@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_signin_button/button_list.dart';
 import 'package:flutter_signin_button/button_view.dart';
+import 'package:tarea7/screens/home_screen.dart';
+import 'package:tarea7/screens/singup_screen.dart';
 import 'package:tarea7/services/email_auth_firebase.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -11,22 +13,42 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final EmailAuthFirebase _authFirebase = EmailAuthFirebase();
   final authFirebase = EmailAuthFirebase();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _phoneController = TextEditingController();
+  String? _selectedMethod;
 
   @override
   Widget build(BuildContext context) {
     final txtEmail = TextFormField(
       controller: _emailController,
       keyboardType: TextInputType.emailAddress,
-      decoration: const InputDecoration(border: OutlineInputBorder()),
+      decoration: const InputDecoration(
+        border: OutlineInputBorder(),
+        hintText: 'Ingresa el correo',
+        labelText: 'Correo institucional',
+      ),
     );
     final txtPassword = TextFormField(
       controller: _passwordController,
       keyboardType: TextInputType.text,
       obscureText: true,
-      decoration: const InputDecoration(border: OutlineInputBorder()),
+      decoration: const InputDecoration(
+        border: OutlineInputBorder(),
+        hintText: 'Ingresa la contraseña',
+        labelText: 'Contraseña',
+      ),
+    );
+    final txtPhone = TextFormField(
+      controller: _phoneController,
+      keyboardType: TextInputType.phone,
+      decoration: InputDecoration(
+        border: OutlineInputBorder(),
+        hintText: 'Ingresa el numero',
+        labelText: 'Numero de telefono',
+      ),
     );
 
     return Scaffold(
@@ -43,17 +65,68 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: ListView(
                   shrinkWrap: true,
                   children: [
-                    txtEmail,
+                    DropdownButtonFormField<String>(
+                      value: _selectedMethod,
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedMethod = value;
+                        });
+                      },
+                      items: [
+                        DropdownMenuItem(
+                          value: 'Celular',
+                          child: Text('Celular'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Correo institucional',
+                          child: Text('Correo institucional'),
+                        ),
+                      ],
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        hintText: 'Metodo de inicio de sesion',
+                        labelText: 'Metodo de inicio de sesion',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    if (_selectedMethod == 'Celular') ...[txtPhone],
+                    if (_selectedMethod == 'Correo institucional') ...[
+                      txtEmail
+                    ],
                     const SizedBox(height: 10),
                     txtPassword,
                     const SizedBox(height: 10),
                     SignInButton(
                       Buttons.Email,
-                      onPressed: () {},
+                      onPressed: () async {
+                        final email = _emailController.text.trim();
+                        final password = _passwordController.text.trim();
+                        final success = await _authFirebase.signInUser(
+                          email: email,
+                          password: password,
+                        );
+                        if (success) {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => HomeScreen(),
+                            ),
+                          );
+                        } else {
+                          print('Error al iniciar sesion');
+                        }
+                      },
                     ),
                     const SizedBox(height: 10),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SingUpScreen(),
+                          ),
+                        );
+                      },
                       child: Text('Crear cuenta'),
                     ),
                   ],

@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -9,7 +7,6 @@ class EmailAuthFirebase {
   final usersRef = FirebaseFirestore.instance.collection('users');
 
   Future<bool> signUpUser({
-    required String name,
     required String password,
     required String email,
     //required String rol,
@@ -23,13 +20,8 @@ class EmailAuthFirebase {
       if (userCredential.user != null) {
         userCredential.user!.sendEmailVerification();
         await usersRef.doc(userCredential.user!.uid).set({
-          'nombre': name,
           'email': email,
-          //'rol': rol,
         });
-        //if (imageFile != null) {
-        //  await uploadImage(userCredential.user!.uid, imageFile);
-        //}
         return true;
       }
       return false;
@@ -39,6 +31,19 @@ class EmailAuthFirebase {
     }
   }
 
+  Future<bool> signInUser(
+      {required String password, required String email}) async {
+    var band = false;
+    final userCredential =
+        await auth.signInWithEmailAndPassword(email: email, password: password);
+    if (userCredential.user != null) {
+      if (userCredential.user!.emailVerified) {
+        band = true;
+      }
+    }
+    return band;
+  }
+}
   /*Future<void> uploadImage(String userId, File imageFile) async {
     try {
       final storageRef =
@@ -66,4 +71,3 @@ class EmailAuthFirebase {
     }
     return band;
   }*/
-}
