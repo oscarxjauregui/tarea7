@@ -19,9 +19,9 @@ class EmailAuthFirebase {
       );
       if (userCredential.user != null) {
         userCredential.user!.sendEmailVerification();
-        await usersRef.doc(userCredential.user!.uid).set({
-          'email': email,
-        });
+        // await usersRef.doc(userCredential.user!.uid).set({
+        //   'email': email,
+        // });
         return true;
       }
       return false;

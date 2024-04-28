@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_signin_button/button_list.dart';
 import 'package:flutter_signin_button/button_view.dart';
+import 'package:tarea7/screens/create_user_screen.dart';
 import 'package:tarea7/screens/home_screen.dart';
-import 'package:tarea7/screens/singup_screen.dart';
+import 'package:tarea7/screens/signup_screen.dart';
 import 'package:tarea7/services/email_auth_firebase.dart';
+import 'package:tarea7/services/user_firebase.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -19,6 +21,36 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final _phoneController = TextEditingController();
   String? _selectedMethod;
+  final UsersFirebase _usersFirebase = UsersFirebase();
+
+  // Future<void> login() async {
+  //   final email = _emailController.text.trim();
+  //   final userExists = await _usersFirebase.consultarEmail(email);
+  //   if (userExists) {
+  //     final password = _passwordController.text.trim();
+  //     final success = await _authFirebase.signInUser(
+  //       email: email,
+  //       password: password,
+  //     );
+  //     if (success) {
+  //       Navigator.push(
+  //         context,
+  //         MaterialPageRoute(
+  //           builder: (context) => HomeScreen(),
+  //         ),
+  //       );
+  //     } else {
+  //       print('Error al iniciar sesión');
+  //     }
+  //   } else {
+  //     Navigator.push(
+  //       context,
+  //       MaterialPageRoute(
+  //         builder: (context) => CreateUserScreen(),
+  //       ),
+  //     );
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -106,10 +138,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           password: password,
                         );
                         if (success) {
-                          Navigator.pushReplacement(
+                          Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => HomeScreen(),
+                              builder: (context) => HomeScreen(
+                                userEmail: _emailController.text,
+                              ),
                             ),
                           );
                         } else {
@@ -123,7 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => SingUpScreen(),
+                            builder: (context) => SignUpScreen(),
                           ),
                         );
                       },
