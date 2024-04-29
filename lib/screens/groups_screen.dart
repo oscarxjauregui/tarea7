@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class GroupsScreen extends StatefulWidget {
-  const GroupsScreen({Key? key}) : super(key: key);
+  final String userId;
+
+  const GroupsScreen({Key? key, required this.userId}) : super(key: key);
 
   @override
   State<GroupsScreen> createState() => _GroupsScreenState();
@@ -12,6 +14,14 @@ class _GroupsScreenState extends State<GroupsScreen> {
   TextEditingController _searchController = TextEditingController();
   TextEditingController _groupNameController = TextEditingController();
   TextEditingController _groupDescriptionController = TextEditingController();
+
+  String? currentUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    currentUserId = widget.userId;
+  }
 
   void _showCreateGroupBottomSheet(BuildContext context) {
     showModalBottomSheet(
@@ -61,9 +71,26 @@ class _GroupsScreenState extends State<GroupsScreen> {
     final String groupName = _groupNameController.text.trim();
     final String groupDescription = _groupDescriptionController.text.trim();
     if (groupName.isNotEmpty) {
-      FirebaseFirestore.instance.collection('groups').add({
+      // Añadir el grupo a la colección 'groups'
+      final groupRef = FirebaseFirestore.instance.collection('groups').doc();
+      groupRef.set({
         'nombre': groupName,
         'descripcion': groupDescription,
+      }).then((_) {
+        // Agregar el ID del grupo a la colección 'group-user'
+        FirebaseFirestore.instance.collection('group-user').add({
+          'groupId': groupRef.id,
+          'userId': currentUserId,
+        }).then((_) {
+          // Éxito al agregar el ID del grupo en 'group-user'
+          print('ID del grupo agregado en group-user');
+        }).catchError((error) {
+          // Error al agregar el ID del grupo en 'group-user'
+          print('Error al agregar el ID del grupo: $error');
+        });
+      }).catchError((error) {
+        // Error al agregar el grupo en 'groups'
+        print('Error al agregar el grupo: $error');
       });
     }
   }
@@ -120,6 +147,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
                   itemBuilder: (context, index) {
                     final groupData =
                         filteredGroups[index].data() as Map<String, dynamic>;
+                    final groupId = filteredGroups[index].id;
                     return InkWell(
                       onTap: () {
                         // Implementa aquí la acción al hacer clic en el grupo
@@ -129,7 +157,20 @@ class _GroupsScreenState extends State<GroupsScreen> {
                         child: ListTile(
                           title: Text(groupData['nombre'] ?? ''),
                           subtitle: Text(groupData['descripcion'] ?? ''),
-                          // Agregar cualquier otro campo relevante para tu grupo aquí
+                          // Agregar el número de usuarios en el grupo
+                          trailing: FutureBuilder<int>(
+                            future: _getGroupUserCount(groupId),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return SizedBox.shrink();
+                              }
+                              if (snapshot.hasError) {
+                                return Text('Error');
+                              }
+                              return Text('${snapshot.data ?? 0} usuarios');
+                            },
+                          ),
                         ),
                       ),
                     );
@@ -141,5 +182,18 @@ class _GroupsScreenState extends State<GroupsScreen> {
         ],
       ),
     );
+  }
+
+  Future<int> _getGroupUserCount(String groupId) async {
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('group-user')
+          .where('groupId', isEqualTo: groupId)
+          .get();
+      return querySnapshot.size;
+    } catch (e) {
+      print('Error al obtener el número de usuarios del grupo: $e');
+      return 0;
+    }
   }
 }

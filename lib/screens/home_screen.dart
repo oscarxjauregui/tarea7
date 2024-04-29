@@ -18,6 +18,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? userName;
   String? userEmail;
   String? avatarUrl;
+  String? userId;
   TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
   List<String> _searchResults = [];
@@ -42,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           userName = userData['nombre'];
           userEmail = userData['email'];
+          userId = userQuerySnapshot.docs.first.id;
         });
       }
     } catch (e) {
@@ -151,7 +153,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => GroupsScreen(),
+                    builder: (context) => GroupsScreen(
+                      userId: userId ?? '',
+                    ),
                   ),
                 );
               }),
