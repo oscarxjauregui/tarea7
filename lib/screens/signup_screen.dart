@@ -136,9 +136,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Ingresa un correo electronico';
-                      } else if (!value.endsWith('@itcelaya.edu.mx')) {
+                      } /*else if (!value.endsWith('@itcelaya.edu.mx')) {
                         return 'Ingresa un correo institucional';
-                      }
+                      }*/
                       return null;
                     },
                     decoration: InputDecoration(

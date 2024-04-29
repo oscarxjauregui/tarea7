@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:tarea7/screens/groups_screen.dart';
 import 'package:tarea7/screens/select_avatar_screen.dart';
+import 'package:tarea7/screens/users_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userEmail;
@@ -16,6 +18,9 @@ class _HomeScreenState extends State<HomeScreen> {
   String? userName;
   String? userEmail;
   String? avatarUrl;
+  TextEditingController _searchController = TextEditingController();
+  bool _isSearching = false;
+  List<String> _searchResults = [];
 
   @override
   void initState() {
@@ -61,6 +66,19 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Inicio'),
+        actions: [
+          // IconButton(
+          //   icon: Icon(Icons.search),
+          //   onPressed: () {
+          //     Navigator.push(
+          //       context,
+          //       MaterialPageRoute(
+          //         builder: (context) => UsersScreen(),
+          //       ),
+          //     );
+          //   },
+          // ),
+        ],
       ),
       drawer: Drawer(
         child: ListView(
@@ -104,6 +122,73 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
           ],
+        ),
+      ),
+      body: Column(
+        children: [
+          GridView.count(
+            crossAxisCount: 3,
+            shrinkWrap: true,
+            childAspectRatio: 1.0,
+            children: [
+              _buildIconBox(Icons.search, 'Buscar Usuarios', () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => UsersScreen(),
+                  ),
+                );
+              }),
+              _buildIconBox(Icons.message, 'Mensajes', () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => UsersScreen(),
+                  ),
+                );
+              }),
+              _buildIconBox(Icons.group, 'Grupos', () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => GroupsScreen(),
+                  ),
+                );
+              }),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIconBox(IconData icon, String text, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding:
+            const EdgeInsets.all(8.0), // Agrega espacio alrededor del cuadro
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.grey[300], // Gris claro
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 48.0,
+              ),
+              SizedBox(height: 8.0),
+              Text(
+                text,
+                style: TextStyle(
+                  fontSize: 15.0,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
