@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:tarea7/screens/groups_screen.dart';
+import 'package:tarea7/screens/message_list_screen.dart';
 import 'package:tarea7/screens/select_avatar_screen.dart';
 import 'package:tarea7/screens/users_screen.dart';
 
@@ -19,9 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? userEmail;
   String? avatarUrl;
   String? userId;
-  TextEditingController _searchController = TextEditingController();
-  bool _isSearching = false;
-  List<String> _searchResults = [];
+  int _selectedIndex = 0;
 
   @override
   void initState() {
@@ -67,20 +66,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Inicio'),
-        actions: [
-          // IconButton(
-          //   icon: Icon(Icons.search),
-          //   onPressed: () {
-          //     Navigator.push(
-          //       context,
-          //       MaterialPageRoute(
-          //         builder: (context) => UsersScreen(),
-          //       ),
-          //     );
-          //   },
-          // ),
-        ],
+        title: Text(_getAppBarTitle(_selectedIndex)),
+        backgroundColor: Colors.blue,
       ),
       drawer: Drawer(
         child: ListView(
@@ -126,75 +113,48 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      body: Column(
-        children: [
-          GridView.count(
-            crossAxisCount: 3,
-            shrinkWrap: true,
-            childAspectRatio: 1.0,
-            children: [
-              _buildIconBox(Icons.search, 'Buscar Usuarios', () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => UsersScreen(),
-                  ),
-                );
-              }),
-              _buildIconBox(Icons.message, 'Mensajes', () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => UsersScreen(),
-                  ),
-                );
-              }),
-              _buildIconBox(Icons.group, 'Grupos', () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => GroupsScreen(
-                      userId: userId ?? '',
-                    ),
-                  ),
-                );
-              }),
-            ],
+      body: _screens[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.search),
+            label: 'Buscar Usuarios',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.message),
+            label: 'Mensajes',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.group),
+            label: 'Grupos',
           ),
         ],
       ),
     );
   }
 
-  Widget _buildIconBox(IconData icon, String text, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding:
-            const EdgeInsets.all(8.0), // Agrega espacio alrededor del cuadro
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.grey[300], // Gris claro
-            borderRadius: BorderRadius.circular(8.0),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 48.0,
-              ),
-              SizedBox(height: 8.0),
-              Text(
-                text,
-                style: TextStyle(
-                  fontSize: 15.0,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  final List<Widget> _screens = [
+    UsersScreen(),
+    MessageListScreen(),
+    GroupsScreen(userId: ''),
+  ];
+
+  String _getAppBarTitle(int index) {
+    switch (index) {
+      case 0:
+        return 'Buscar Usuarios';
+      case 1:
+        return 'Mensajes';
+      case 2:
+        return 'Grupos';
+      default:
+        return 'Inicio';
+    }
   }
 }

@@ -98,17 +98,6 @@ class _GroupsScreenState extends State<GroupsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Grupos'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.add),
-            onPressed: () {
-              _showCreateGroupBottomSheet(context);
-            },
-          ),
-        ],
-      ),
       body: Column(
         children: [
           Padding(
@@ -180,6 +169,12 @@ class _GroupsScreenState extends State<GroupsScreen> {
             ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          _showCreateGroupBottomSheet(context);
+        },
+        child: Icon(Icons.add),
       ),
     );
   }

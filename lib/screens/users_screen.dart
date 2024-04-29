@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:tarea7/screens/message_screen.dart';
 
 class UsersScreen extends StatefulWidget {
   const UsersScreen({Key? key}) : super(key: key);
@@ -14,9 +15,6 @@ class _UsersScreenState extends State<UsersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Lista de Usuarios'),
-      ),
       body: Column(
         children: [
           Padding(
@@ -67,7 +65,14 @@ class _UsersScreenState extends State<UsersScreen> {
                           IconButton(
                             icon: Icon(Icons.message),
                             onPressed: () {
-                              // Acción cuando se presiona el icono de mensaje
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => MessageScreen(
+                                    userId: userId ?? '',
+                                  ),
+                                ),
+                              );
                             },
                           ),
                           IconButton(
@@ -78,9 +83,7 @@ class _UsersScreenState extends State<UsersScreen> {
                           ),
                         ],
                       ),
-                      onTap: () {
-                        // Acción cuando se selecciona un usuario
-                      },
+                      onTap: () {},
                     );
                   },
                 );
