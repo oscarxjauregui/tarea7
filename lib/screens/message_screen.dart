@@ -65,8 +65,7 @@ class _MessageScreenState extends State<MessageScreen> {
   Future<void> _sendMessage(String message) async {
     try {
       await FirebaseFirestore.instance.collection('messages').add({
-        'senderId': widget.myUserId,
-        'receiverId': widget.userId,
+        'ids': [widget.myUserId, widget.userId], // Almacenar IDs en una lista
         'message': message,
         'timestamp': DateTime.now(),
       });
@@ -95,36 +94,12 @@ class _MessageScreenState extends State<MessageScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Nombre: $_userName',
-                  style: TextStyle(fontSize: 16),
-                ),
-                Text(
-                  'Email: $_userEmail',
-                  style: TextStyle(fontSize: 16),
-                ),
-                Text(
-                  'Nombre: $_myUserName',
-                  style: TextStyle(fontSize: 16),
-                ),
-                Text(
-                  'Email: $_myUserEmail',
-                  style: TextStyle(fontSize: 16),
-                ),
-              ],
-            ),
-          ),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('messages')
-                  .where('senderId', isEqualTo: widget.myUserId)
-                  .where('receiverId', isEqualTo: widget.userId)
+                  .where('ids',
+                      arrayContainsAny: [widget.myUserId, widget.userId])
                   .orderBy('timestamp', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
@@ -132,7 +107,10 @@ class _MessageScreenState extends State<MessageScreen> {
                   return Center(child: CircularProgressIndicator());
                 }
                 if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
+                  print('${snapshot.error}');
+                  return Center(
+                    child: Text('Error: ${snapshot.error}'),
+                  );
                 }
                 final messages = snapshot.data?.docs ?? [];
                 return ListView.builder(
@@ -142,12 +120,45 @@ class _MessageScreenState extends State<MessageScreen> {
                     final messageData =
                         messages[index].data() as Map<String, dynamic>;
                     final message = messageData['message'];
-                    final senderId = messageData['senderId'];
-                    final receiverId = messageData['receiverId'];
-                    final timestamp = messageData['timestamp']?.toDate();
-                    return ListTile(
-                      title: Text(message),
-                      subtitle: Text('Sent: ${timestamp.toString()}'),
+                    final ids = List<String>.from(messageData['ids'] ?? []);
+
+                    final isMyMessage = ids.indexOf(widget.myUserId) == 0;
+
+                    final timestamp =
+                        '${messageData['timestamp']?.toDate().day}-${messageData['timestamp']?.toDate().month}-${messageData['timestamp']?.toDate().year} ${messageData['timestamp']?.toDate().hour}:${messageData['timestamp']?.toDate().minute}';
+
+                    return Align(
+                      alignment: isMyMessage
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      child: Container(
+                        margin:
+                            EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                        padding: EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color:
+                              isMyMessage ? Colors.blue[200] : Colors.grey[200],
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(16),
+                            topRight: Radius.circular(16),
+                            bottomLeft:
+                                isMyMessage ? Radius.circular(16) : Radius.zero,
+                            bottomRight:
+                                isMyMessage ? Radius.zero : Radius.circular(16),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              message,
+                              style: TextStyle(fontSize: 16),
+                            ),
+                            SizedBox(height: 4),
+                            Text('Enviado: $timestamp'),
+                          ],
+                        ),
+                      ),
                     );
                   },
                 );
