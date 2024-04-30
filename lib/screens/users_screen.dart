@@ -103,13 +103,13 @@ class _UsersScreenState extends State<UsersScreen> {
             ),
           ),
           // Muestra el nombre del otro usuario al final del body
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              'Nombre del otro usuario: $_otherUserName',
-              style: TextStyle(fontSize: 16),
-            ),
-          ),
+          // Padding(
+          //   padding: const EdgeInsets.all(8.0),
+          //   child: Text(
+          //     'Nombre del otro usuario: $_otherUserName',
+          //     style: TextStyle(fontSize: 16),
+          //   ),
+          // ),
         ],
       ),
     );

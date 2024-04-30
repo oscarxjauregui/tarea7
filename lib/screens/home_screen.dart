@@ -46,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
           userId = userQuerySnapshot.docs.first.id;
           _screens = [
             UsersScreen(myUserId: userId ?? ''),
-            MessageListScreen(),
+            MessageListScreen(myUserId: userId ?? ''),
             GroupsScreen(userId: userId ?? ''),
           ];
         });
