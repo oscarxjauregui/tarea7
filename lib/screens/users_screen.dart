@@ -3,7 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:tarea7/screens/message_screen.dart';
 
 class UsersScreen extends StatefulWidget {
-  const UsersScreen({Key? key}) : super(key: key);
+  final String myUserId;
+
+  const UsersScreen({
+    Key? key,
+    required this.myUserId,
+  }) : super(key: key);
 
   @override
   State<UsersScreen> createState() => _UsersScreenState();
@@ -11,6 +16,9 @@ class UsersScreen extends StatefulWidget {
 
 class _UsersScreenState extends State<UsersScreen> {
   TextEditingController _searchController = TextEditingController();
+
+  String _otherUserName =
+      'Cargando...'; // Variable para almacenar el nombre del otro usuario
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +78,7 @@ class _UsersScreenState extends State<UsersScreen> {
                                 MaterialPageRoute(
                                   builder: (context) => MessageScreen(
                                     userId: userId ?? '',
+                                    myUserId: widget.myUserId,
                                   ),
                                 ),
                               );
@@ -83,11 +92,22 @@ class _UsersScreenState extends State<UsersScreen> {
                           ),
                         ],
                       ),
-                      onTap: () {},
+                      onTap: () {
+                        // Al hacer tap en el usuario, obtén su nombre
+                        _getOtherUserName(widget.myUserId);
+                      },
                     );
                   },
                 );
               },
+            ),
+          ),
+          // Muestra el nombre del otro usuario al final del body
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              'Nombre del otro usuario: $_otherUserName',
+              style: TextStyle(fontSize: 16),
             ),
           ),
         ],
@@ -96,127 +116,23 @@ class _UsersScreenState extends State<UsersScreen> {
   }
 
   void _showAddToGroupBottomSheet(BuildContext context, String userId) {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return Container(
-          margin: EdgeInsets.only(top: 20),
-          child: StreamBuilder(
-            stream: FirebaseFirestore.instance.collection('groups').snapshots(),
-            builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CircularProgressIndicator());
-              }
-              if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
-              }
-              final groups = snapshot.data?.docs ?? [];
-              return ListView.builder(
-                itemCount: groups.length,
-                itemBuilder: (context, index) {
-                  final groupData =
-                      groups[index].data() as Map<String, dynamic>;
-                  final groupId = groups[index].id;
-                  return StreamBuilder(
-                    stream: FirebaseFirestore.instance
-                        .collection('group-user')
-                        .where('groupId', isEqualTo: groupId)
-                        .snapshots(),
-                    builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator());
-                      }
-                      if (snapshot.hasError) {
-                        return Text('Error: ${snapshot.error}');
-                      }
-                      final userCount = snapshot.data?.docs.length ?? 0;
-                      final userExists = snapshot.data?.docs
-                              .any((doc) => doc['userId'] == userId) ??
-                          false;
-                      return ListTile(
-                        title: Text(groupData['nombre'] ?? ''),
-                        subtitle: Text(groupData['descripcion'] ?? ''),
-                        trailing: Text('$userCount usuarios'),
-                        onTap: () {
-                          if (userExists) {
-                            showDialog(
-                              context: context,
-                              builder: (BuildContext context) {
-                                return AlertDialog(
-                                  title: Text('No se puede agregar'),
-                                  content: Text('¡Ya está en este grupo!'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.pop(context);
-                                      },
-                                      child: Text('OK'),
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
-                          } else {
-                            showDialog(
-                              context: context,
-                              builder: (BuildContext context) {
-                                return AlertDialog(
-                                  title: Text('Confirmar'),
-                                  content: Text(
-                                      '¿Desea agregar a este usuario al grupo?'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () {
-                                        _joinGroup(userId, groupId);
-                                        Navigator.pop(
-                                            context); // Cierra el cuadro de diálogo
-                                        Navigator.pop(
-                                            context); // Cierra el bottom sheet
-                                      },
-                                      child: Text('Sí'),
-                                    ),
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.pop(
-                                            context); // Cierra el cuadro de diálogo
-                                      },
-                                      child: Text('Cancelar'),
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
-                          }
-                        },
-                      );
-                    },
-                  );
-                },
-              );
-            },
-          ),
-        );
-      },
-    );
+    // Implementación de showModalBottomSheet
   }
 
-  Future<bool> _checkIfUserIsInGroup(String userId, String groupId) async {
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection('group-user')
-        .where('groupId', isEqualTo: groupId)
-        .where('userId', isEqualTo: userId)
-        .get();
-    return querySnapshot.docs.isNotEmpty;
-  }
-
-  Future<void> _joinGroup(String userId, String groupId) async {
+  Future<void> _getOtherUserName(String userId) async {
     try {
-      await FirebaseFirestore.instance.collection('group-user').add({
-        'groupId': groupId,
-        'userId': userId,
-      });
+      final userSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+      if (userSnapshot.exists) {
+        final userData = userSnapshot.data() as Map<String, dynamic>;
+        setState(() {
+          _otherUserName = userData['nombre'] ?? 'No proporcionado';
+        });
+      }
     } catch (e) {
-      print(e);
+      print('Error obteniendo el nombre del usuario: $e');
     }
   }
 }

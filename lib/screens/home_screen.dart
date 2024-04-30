@@ -21,6 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? avatarUrl;
   String? userId;
   int _selectedIndex = 0;
+  late List<Widget> _screens = [];
 
   @override
   void initState() {
@@ -43,6 +44,11 @@ class _HomeScreenState extends State<HomeScreen> {
           userName = userData['nombre'];
           userEmail = userData['email'];
           userId = userQuerySnapshot.docs.first.id;
+          _screens = [
+            UsersScreen(myUserId: userId ?? ''),
+            MessageListScreen(),
+            GroupsScreen(userId: userId ?? ''),
+          ];
         });
       }
     } catch (e) {
@@ -113,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      body: _screens[_selectedIndex],
+      body: _screens.isNotEmpty ? _screens[_selectedIndex] : Container(),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) {
@@ -138,12 +144,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
-  final List<Widget> _screens = [
-    UsersScreen(),
-    MessageListScreen(),
-    GroupsScreen(userId: ''),
-  ];
 
   String _getAppBarTitle(int index) {
     switch (index) {
