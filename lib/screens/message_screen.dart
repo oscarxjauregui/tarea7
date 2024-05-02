@@ -1,5 +1,19 @@
+import 'dart:io';
+
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+
+class ImageController extends ChangeNotifier {
+  File? _imageFile;
+  File? get imageFile => _imageFile;
+
+  void setImageFile(File? imageFile) {
+    _imageFile = imageFile;
+    notifyListeners();
+  }
+}
 
 class MessageScreen extends StatefulWidget {
   final String userId;
@@ -13,17 +27,57 @@ class MessageScreen extends StatefulWidget {
 }
 
 class _MessageScreenState extends State<MessageScreen> {
+  late ImageController imageController;
   late String _userName = 'Cargando...';
   late String _userEmail = 'Cargando...';
   late String _myUserName = 'Cargando...';
   late String _myUserEmail = 'Cargando...';
   final TextEditingController _messageController = TextEditingController();
 
+  Future<void> _selectImage(ImageSource source) async {
+    try {
+      final pickedFile = await ImagePicker().pickImage(source: source);
+      if (pickedFile != null) {
+        setState(() {
+          imageController.setImageFile(File(pickedFile.path));
+          // Subir la imagen al almacenamiento de Firebase
+          _uploadImage(File(pickedFile.path));
+        });
+      }
+    } catch (e) {
+      print("Error al seleccionar la imagen: $e");
+    }
+  }
+
+  Future<void> _uploadImage(File imageFile) async {
+    try {
+      // Subir la imagen al almacenamiento de Firebase
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('images')
+          .child('${DateTime.now()}.jpg');
+      await storageRef.putFile(imageFile);
+
+      // Obtener el enlace de descarga de la imagen
+      final imageUrl = await storageRef.getDownloadURL();
+
+      // Actualizar el documento en la colección 'messages' con el enlace de descarga
+      await FirebaseFirestore.instance.collection('messages').add({
+        'ids': [widget.myUserId, widget.userId],
+        'message': imageUrl, // Almacenar el enlace de descarga como un string
+        'timestamp': DateTime.now(),
+      });
+    } catch (e) {
+      print("Error al subir la imagen: $e");
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _getUserData();
     _getMyUserData();
+    imageController = ImageController();
   }
 
   Future<void> _getMyUserData() async {
@@ -183,8 +237,35 @@ class _MessageScreenState extends State<MessageScreen> {
                 IconButton(
                   icon: Icon(Icons.image),
                   onPressed: () {
-                    // Aquí puedes implementar la lógica para enviar una imagen
-                    print('Enviar imagen');
+                    // Mostrar el BottomSheet para seleccionar la imagen
+                    showModalBottomSheet(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return SafeArea(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              ListTile(
+                                leading: Icon(Icons.camera),
+                                title: Text('Desde la cámara'),
+                                onTap: () {
+                                  _selectImage(ImageSource.camera);
+                                  Navigator.pop(context);
+                                },
+                              ),
+                              ListTile(
+                                leading: Icon(Icons.photo_library),
+                                title: Text('Desde la galería'),
+                                onTap: () {
+                                  _selectImage(ImageSource.gallery);
+                                  Navigator.pop(context);
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
                   },
                 ),
                 IconButton(

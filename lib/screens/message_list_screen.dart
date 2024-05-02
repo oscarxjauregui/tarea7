@@ -14,6 +14,7 @@ class MessageListScreen extends StatefulWidget {
 class _MessageListScreenState extends State<MessageListScreen> {
   final Map<String, String> _userNames =
       {}; // Map to store user names efficiently
+  final Set<String> _displayedUserIds = {}; // Set to store displayed user IDs
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +47,7 @@ class _MessageListScreenState extends State<MessageListScreen> {
 
               final otherUserId = ids[1];
 
-              // Retrieve user name only if not already stored
+              // Retrieve user name only if not already stored and displayed
               if (!_userNames.containsKey(otherUserId)) {
                 return FutureBuilder<DocumentSnapshot>(
                   future: FirebaseFirestore.instance
@@ -66,44 +67,44 @@ class _MessageListScreenState extends State<MessageListScreen> {
                     final userName = userData['nombre'] ?? 'Usuario';
                     _userNames[otherUserId] = userName;
 
-                    return ListTile(
-                      title: Text(userName),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => MessageScreen(
-                              userId: otherUserId,
-                              myUserId: widget.myUserId,
-                            ),
-                          ),
-                        );
-                      },
-                    );
+                    // Call the helper method to build ListTile with user name
+                    return _buildListTile(userName, otherUserId);
                   },
                 );
               } else {
                 // Use stored user name for efficiency
                 final userName = _userNames[otherUserId]!;
-                return ListTile(
-                  title: Text(userName),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => MessageScreen(
-                          userId: otherUserId,
-                          myUserId: widget.myUserId,
-                        ),
-                      ),
-                    );
-                  },
-                );
+                return _buildListTile(userName, otherUserId);
               }
             },
           );
         },
       ),
     );
+  }
+
+  Widget _buildListTile(String userName, String otherUserId) {
+    // Verificar si otherUserId ya se ha mostrado antes
+    if (_displayedUserIds.contains(otherUserId)) {
+      // Si ya se ha mostrado, retornar un widget vacío
+      return const SizedBox.shrink();
+    } else {
+      // Si no se ha mostrado, agregarlo al conjunto de IDs mostrados
+      _displayedUserIds.add(otherUserId);
+      return ListTile(
+        title: Text(userName),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MessageScreen(
+                userId: otherUserId,
+                myUserId: widget.myUserId,
+              ),
+            ),
+          );
+        },
+      );
+    }
   }
 }

@@ -28,10 +28,10 @@ class MyApp extends StatelessWidget {
       builder: ((context, value, child) {
         return const MaterialApp(
           debugShowCheckedModeBanner: false,
-            // theme: value
-            //     ? ThemeApp.darkTheme(context)
-            //     : ThemeApp.lightTheme(context),
-            home: LoginScreen(),
+          // theme: value
+          //     ? ThemeApp.darkTheme(context)
+          //     : ThemeApp.lightTheme(context),
+          home: LoginScreen(),
         );
       }),
     );
