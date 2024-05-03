@@ -63,13 +63,20 @@ class _MessageScreenState extends State<MessageScreen> {
       UploadTask uploadTask = firebaseStorageRef.putFile(imageFile);
 
       // Obtener la URL de descarga una vez que se complete la carga
-      TaskSnapshot taskSnapshot = await uploadTask.whenComplete(() => null);
+      TaskSnapshot taskSnapshot = await uploadTask;
       String url = await taskSnapshot.ref.getDownloadURL();
 
       // Mostrar mensaje en consola para confirmar que la imagen se subió correctamente
       print('Imagen subida correctamente. URL: $url');
 
-      // Aquí puedes agregar el código para guardar la URL de la imagen en Firestore, si es necesario
+      // Guardar el enlace de la imagen en Firestore
+      await FirebaseFirestore.instance.collection('messages').add({
+        'ids': [widget.myUserId, widget.userId],
+        'message': '',
+        'imageUrl':
+            url, // Guardar el enlace de la imagen en la propiedad 'imageUrl'
+        'timestamp': DateTime.now(),
+      });
     } catch (e) {
       print("Error al subir la imagen al almacenamiento de Firebase: $e");
     }
@@ -131,6 +138,19 @@ class _MessageScreenState extends State<MessageScreen> {
     }
   }
 
+  Future<void> _selectVideo() async {
+    try {
+      final pickedFile =
+          await ImagePicker().pickVideo(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        // Aquí puedes implementar la lógica para subir el video seleccionado
+        // _uploadVideo(File(pickedFile.path));
+      }
+    } catch (e) {
+      print("Error al seleccionar el video: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -184,39 +204,93 @@ class _MessageScreenState extends State<MessageScreen> {
                     final timestamp =
                         '${messageData['timestamp']?.toDate().day}-${messageData['timestamp']?.toDate().month}-${messageData['timestamp']?.toDate().year} ${messageData['timestamp']?.toDate().hour}:${messageData['timestamp']?.toDate().minute}';
 
-                    return Align(
-                      alignment: isMyMessage
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
-                      child: Container(
-                        margin:
-                            EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                        padding: EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color:
-                              isMyMessage ? Colors.blue[200] : Colors.grey[200],
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(16),
-                            topRight: Radius.circular(16),
-                            bottomLeft:
-                                isMyMessage ? Radius.circular(16) : Radius.zero,
-                            bottomRight:
-                                isMyMessage ? Radius.zero : Radius.circular(16),
+                    if (messageData.containsKey('imageUrl')) {
+                      return Align(
+                        alignment: isMyMessage
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
+                        child: Container(
+                          constraints: BoxConstraints(
+                            maxWidth: MediaQuery.of(context).size.width *
+                                0.8, // Ancho máximo del contenedor
+                          ),
+                          margin:
+                              EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                          padding: EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: isMyMessage
+                                ? Colors.blue[200]
+                                : Colors.grey[200],
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(16),
+                              topRight: Radius.circular(16),
+                              bottomLeft: isMyMessage
+                                  ? Radius.circular(16)
+                                  : Radius.zero,
+                              bottomRight: isMyMessage
+                                  ? Radius.zero
+                                  : Radius.circular(16),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Mostramos el texto del mensaje
+                              if (messageData.containsKey('message'))
+                                Text(messageData['message'],
+                                    style: TextStyle(fontSize: 16)),
+                              // Mostramos la imagen
+                              Image.network(messageData['imageUrl']),
+                              SizedBox(height: 4),
+                              Text('Enviado: $timestamp'),
+                            ],
                           ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (messageData.containsKey('message'))
-                              Text(message, style: TextStyle(fontSize: 16)),
-                            if (messageData.containsKey('imageUrl'))
-                              Image.network(messageData['imageUrl']),
-                            SizedBox(height: 4),
-                            Text('Enviado: $timestamp'),
-                          ],
+                      );
+                    } else {
+                      return Align(
+                        alignment: isMyMessage
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
+                        child: Container(
+                          constraints: BoxConstraints(
+                            maxWidth: MediaQuery.of(context).size.width *
+                                0.8, // Ancho máximo del contenedor
+                          ),
+                          margin: EdgeInsets.symmetric(
+                              vertical: 4, horizontal: 16), // Margen adicional
+                          padding: EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isMyMessage
+                                ? Colors.blue[200]
+                                : Colors.grey[200],
+                            borderRadius: BorderRadius.only(
+                              topLeft:
+                                  Radius.circular(24), // Bordes más redondeados
+                              topRight:
+                                  Radius.circular(24), // Bordes más redondeados
+                              bottomLeft: isMyMessage
+                                  ? Radius.circular(24)
+                                  : Radius.zero, // Bordes más redondeados
+                              bottomRight: isMyMessage
+                                  ? Radius.zero
+                                  : Radius.circular(
+                                      24), // Bordes más redondeados
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Mostramos solo el texto del mensaje
+                              Text(messageData['message'],
+                                  style: TextStyle(fontSize: 16)),
+                              SizedBox(height: 4),
+                              Text('Enviado: $timestamp'),
+                            ],
+                          ),
                         ),
-                      ),
-                    );
+                      );
+                    }
                   },
                 );
               },
@@ -261,6 +335,14 @@ class _MessageScreenState extends State<MessageScreen> {
                                 title: Text('Desde la galería'),
                                 onTap: () {
                                   _selectImage(ImageSource.gallery);
+                                  Navigator.pop(context);
+                                },
+                              ),
+                              ListTile(
+                                leading: Icon(Icons.videocam),
+                                title: Text('Subir video'),
+                                onTap: () {
+                                  _selectVideo();
                                   Navigator.pop(context);
                                 },
                               ),

@@ -60,11 +60,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _getAvatarUrl() async {
     try {
-      final reference = FirebaseStorage.instance.ref().child('avatar1.png');
-      final url = await reference.getDownloadURL();
-      setState(() {
-        avatarUrl = url;
-      });
+      if (userId != null) {
+        final reference =
+            FirebaseStorage.instance.ref().child('avatars/$userId.png');
+        final url = await reference.getDownloadURL();
+        setState(() {
+          avatarUrl = url;
+        });
+      }
     } catch (e) {
       print(e);
     }
@@ -100,10 +103,11 @@ class _HomeScreenState extends State<HomeScreen> {
               subtitle: Text('Cambiar foto de perfil'),
               trailing: Icon(Icons.chevron_right),
               onTap: () {
-                Navigator.push(
+                Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => SelectAvatarScreen(),
+                    builder: (context) =>
+                        SelectAvatarScreen(userId: userId ?? ''),
                   ),
                 );
               },
