@@ -1,9 +1,10 @@
 import 'dart:io';
 
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class ImageController extends ChangeNotifier {
   File? _imageFile;
@@ -51,33 +52,35 @@ class _MessageScreenState extends State<MessageScreen> {
 
   Future<void> _uploadImage(File imageFile) async {
     try {
-      // Subir la imagen al almacenamiento de Firebase
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('images')
-          .child('${DateTime.now()}.jpg');
-      await storageRef.putFile(imageFile);
+      // Nombre del archivo en el almacenamiento de Firebase
+      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
 
-      // Obtener el enlace de descarga de la imagen
-      final imageUrl = await storageRef.getDownloadURL();
+      // Referencia al directorio en el almacenamiento de Firebase
+      Reference firebaseStorageRef =
+          FirebaseStorage.instance.ref().child('images/$fileName.jpg');
 
-      // Actualizar el documento en la colección 'messages' con el enlace de descarga
-      await FirebaseFirestore.instance.collection('messages').add({
-        'ids': [widget.myUserId, widget.userId],
-        'message': imageUrl, // Almacenar el enlace de descarga como un string
-        'timestamp': DateTime.now(),
-      });
+      // Subir el archivo al almacenamiento de Firebase
+      UploadTask uploadTask = firebaseStorageRef.putFile(imageFile);
+
+      // Obtener la URL de descarga una vez que se complete la carga
+      TaskSnapshot taskSnapshot = await uploadTask.whenComplete(() => null);
+      String url = await taskSnapshot.ref.getDownloadURL();
+
+      // Mostrar mensaje en consola para confirmar que la imagen se subió correctamente
+      print('Imagen subida correctamente. URL: $url');
+
+      // Aquí puedes agregar el código para guardar la URL de la imagen en Firestore, si es necesario
     } catch (e) {
-      print("Error al subir la imagen: $e");
+      print("Error al subir la imagen al almacenamiento de Firebase: $e");
     }
   }
 
   @override
   void initState() {
     super.initState();
+    imageController = ImageController();
     _getUserData();
     _getMyUserData();
-    imageController = ImageController();
   }
 
   Future<void> _getMyUserData() async {
@@ -204,10 +207,10 @@ class _MessageScreenState extends State<MessageScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              message,
-                              style: TextStyle(fontSize: 16),
-                            ),
+                            if (messageData.containsKey('message'))
+                              Text(message, style: TextStyle(fontSize: 16)),
+                            if (messageData.containsKey('imageUrl'))
+                              Image.network(messageData['imageUrl']),
                             SizedBox(height: 4),
                             Text('Enviado: $timestamp'),
                           ],

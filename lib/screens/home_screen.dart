@@ -27,7 +27,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _getUserData();
-    _getAvatarUrl();
   }
 
   Future<void> _getUserData() async {
@@ -54,6 +53,9 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       print(e);
     }
+
+    // Llamar a la función para obtener la URL del avatar después de obtener los datos del usuario.
+    _getAvatarUrl();
   }
 
   Future<void> _getAvatarUrl() async {
