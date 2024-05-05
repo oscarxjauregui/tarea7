@@ -17,8 +17,7 @@ class UsersScreen extends StatefulWidget {
 class _UsersScreenState extends State<UsersScreen> {
   TextEditingController _searchController = TextEditingController();
 
-  String _otherUserName =
-      'Cargando...'; // Variable para almacenar el nombre del otro usuario
+  String _otherUserName = 'Cargando...';
 
   @override
   Widget build(BuildContext context) {
@@ -55,8 +54,11 @@ class _UsersScreenState extends State<UsersScreen> {
                   final userData = user.data() as Map<String, dynamic>;
                   final userName = userData['nombre']?.toLowerCase() ?? '';
                   final userEmail = userData['email']?.toLowerCase() ?? '';
-                  return userName.contains(searchText) ||
-                      userEmail.contains(searchText);
+                  final userId = user.id;
+                  // Excluir el usuario actual
+                  return userId != widget.myUserId &&
+                      (userName.contains(searchText) ||
+                          userEmail.contains(searchText));
                 }).toList();
                 return ListView.builder(
                   itemCount: filteredUsers.length,
@@ -93,8 +95,7 @@ class _UsersScreenState extends State<UsersScreen> {
                         ],
                       ),
                       onTap: () {
-                        // Al hacer tap en el usuario, obtén su nombre
-                        _getOtherUserName(widget.myUserId);
+                        _getOtherUserName(userId);
                       },
                     );
                   },
@@ -102,21 +103,100 @@ class _UsersScreenState extends State<UsersScreen> {
               },
             ),
           ),
-          // Muestra el nombre del otro usuario al final del body
-          // Padding(
-          //   padding: const EdgeInsets.all(8.0),
-          //   child: Text(
-          //     'Nombre del otro usuario: $_otherUserName',
-          //     style: TextStyle(fontSize: 16),
-          //   ),
-          // ),
         ],
       ),
     );
   }
 
   void _showAddToGroupBottomSheet(BuildContext context, String userId) {
-    // Implementación de showModalBottomSheet
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return StreamBuilder(
+          stream: FirebaseFirestore.instance.collection('groups').snapshots(),
+          builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
+            final groups = snapshot.data?.docs ?? [];
+            return ListView.builder(
+              itemCount: groups.length,
+              itemBuilder: (context, index) {
+                final groupData = groups[index].data() as Map<String, dynamic>;
+                final groupId = groups[index].id;
+                final groupName = groupData['nombre'] ?? '';
+                final groupDescription = groupData['descripcion'] ?? '';
+                return InkWell(
+                  child: Card(
+                    margin:
+                        EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                    child: ListTile(
+                      title: Text(
+                        groupName,
+                        style: TextStyle(
+                          fontSize: 16.0,
+                        ),
+                      ),
+                      subtitle: Text(groupDescription),
+                      trailing: IconButton(
+                        icon: Icon(Icons.add),
+                        onPressed: () async {
+                          final isAlreadyInGroup =
+                              await _checkIfUserInGroup(userId, groupId);
+                          if (isAlreadyInGroup) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text('No se puede agregar, el usuario ya está en este grupo'),
+                            ));
+                          } else {
+                            _addToGroup(userId, groupId);
+                            Navigator.pop(context); // Cerrar el BottomSheet
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<bool> _checkIfUserInGroup(String userId, String groupId) async {
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('group-user')
+          .where('groupId', isEqualTo: groupId)
+          .where('userId', isEqualTo: userId)
+          .get();
+      return querySnapshot.docs.isNotEmpty;
+    } catch (e) {
+      print('Error al verificar si el usuario está en el grupo: $e');
+      return false;
+    }
+  }
+
+  Future<void> _addToGroup(String userId, String groupId) async {
+    try {
+      await FirebaseFirestore.instance.collection('group-user').add({
+        'userId': userId,
+        'groupId': groupId,
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Usuario agregado al grupo')),
+      );
+    } catch (e) {
+      print('Error al agregar usuario al grupo: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al agregar usuario al grupo')),
+      );
+    }
   }
 
   Future<void> _getOtherUserName(String userId) async {

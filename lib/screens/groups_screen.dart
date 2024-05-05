@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -76,6 +78,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
       groupRef.set({
         'nombre': groupName,
         'descripcion': groupDescription,
+        'callID': Random().nextInt(9999),
       }).then((_) {
         // Agregar el ID del grupo a la colección 'group-user'
         FirebaseFirestore.instance.collection('group-user').add({
