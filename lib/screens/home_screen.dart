@@ -156,7 +156,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 0:
         return 'Buscar Usuarios';
       case 1:
-        return 'Mensajes';
+        return 'Lista de Mensajes';
       case 2:
         return 'Grupos';
       default:
