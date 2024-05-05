@@ -34,7 +34,16 @@ class _MessageListScreenState extends State<MessageListScreen> {
     return Scaffold(
       body: Column(
         children: [
-          // Sección de lista de mensajes
+          // Sección de lista de mensajes de usuarios
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              'Chats',
+              textAlign: TextAlign.left, // Alineación a la izquierda
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w400),
+            ),
+          ),
+
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -61,7 +70,6 @@ class _MessageListScreenState extends State<MessageListScreen> {
                     final otherUserId =
                         ids.firstWhere((id) => id != widget.myUserId);
 
-                    // Obtener nombre de usuario solo si aún no está almacenado y mostrado
                     if (!_userNames.containsKey(otherUserId)) {
                       return FutureBuilder<DocumentSnapshot>(
                         future: FirebaseFirestore.instance
@@ -82,12 +90,10 @@ class _MessageListScreenState extends State<MessageListScreen> {
                           final userName = userData['nombre'] ?? 'Usuario';
                           _userNames[otherUserId] = userName;
 
-                          // Llamar al método auxiliar para construir ListTile con el nombre de usuario
                           return _buildListTile(context, userName, otherUserId);
                         },
                       );
                     } else {
-                      // Usar nombre de usuario almacenado para eficiencia
                       final userName = _userNames[otherUserId]!;
                       return _buildListTile(context, userName, otherUserId);
                     }
@@ -97,6 +103,13 @@ class _MessageListScreenState extends State<MessageListScreen> {
             ),
           ),
           // Sección de lista de grupos
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              'Grupos',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w400),
+            ),
+          ),
           Expanded(
             child: Container(
               child: StreamBuilder<QuerySnapshot>(
@@ -237,12 +250,9 @@ class _MessageListScreenState extends State<MessageListScreen> {
     final lastMessageDate =
         lastMessageData != null ? lastMessageData['date'] : null;
 
-    // Verificar si otherUserId ya se ha mostrado antes
     if (_displayedUserIds.contains(otherUserId)) {
-      // Si ya se ha mostrado, retornar un widget vacío
       return const SizedBox.shrink();
     } else {
-      // Si no se ha mostrado, agregarlo al conjunto de IDs mostrados
       _displayedUserIds.add(otherUserId);
       return InkWell(
         onTap: () {
@@ -266,8 +276,7 @@ class _MessageListScreenState extends State<MessageListScreen> {
                 Text(lastMessage),
                 if (lastMessageDate != null)
                   Text(
-                    DateFormat('dd-MM-yyyy HH:mm')
-                        .format(lastMessageDate), // Formato de fecha deseado
+                    DateFormat('dd-MM-yyyy HH:mm').format(lastMessageDate),
                   ),
               ],
             ),
