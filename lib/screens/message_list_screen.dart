@@ -14,6 +14,8 @@ class MessageListScreen extends StatefulWidget {
 class _MessageListScreenState extends State<MessageListScreen> {
   final Map<String, String> _userNames =
       {}; // Map to store user names efficiently
+  final Map<String, String> _lastMessages =
+      {}; // Map to store last messages for each user
   final Set<String> _displayedUserIds = {}; // Set to store displayed user IDs
 
   @override
@@ -23,6 +25,7 @@ class _MessageListScreenState extends State<MessageListScreen> {
         stream: FirebaseFirestore.instance
             .collection('messages')
             .where('ids', arrayContains: widget.myUserId)
+            .orderBy('timestamp', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -40,12 +43,7 @@ class _MessageListScreenState extends State<MessageListScreen> {
                   messages[index].data() as Map<String, dynamic>;
               final ids = List<String>.from(messageData['ids'] ?? []);
 
-              // Check if myUserId is in the first position to avoid unnecessary processing
-              if (ids.indexOf(widget.myUserId) != 0) {
-                return const SizedBox.shrink(); // Don't show message
-              }
-
-              final otherUserId = ids[1];
+              final otherUserId = ids.firstWhere((id) => id != widget.myUserId);
 
               // Retrieve user name only if not already stored and displayed
               if (!_userNames.containsKey(otherUserId)) {
@@ -68,13 +66,13 @@ class _MessageListScreenState extends State<MessageListScreen> {
                     _userNames[otherUserId] = userName;
 
                     // Call the helper method to build ListTile with user name
-                    return _buildListTile(userName, otherUserId);
+                    return _buildListTile(context, userName, otherUserId);
                   },
                 );
               } else {
                 // Use stored user name for efficiency
                 final userName = _userNames[otherUserId]!;
-                return _buildListTile(userName, otherUserId);
+                return _buildListTile(context, userName, otherUserId);
               }
             },
           );
@@ -83,7 +81,10 @@ class _MessageListScreenState extends State<MessageListScreen> {
     );
   }
 
-  Widget _buildListTile(String userName, String otherUserId) {
+  Widget _buildListTile(
+      BuildContext context, String userName, String otherUserId) {
+    final lastMessage = _lastMessages[otherUserId] ?? 'No hay mensajes';
+
     // Verificar si otherUserId ya se ha mostrado antes
     if (_displayedUserIds.contains(otherUserId)) {
       // Si ya se ha mostrado, retornar un widget vacío
@@ -91,8 +92,7 @@ class _MessageListScreenState extends State<MessageListScreen> {
     } else {
       // Si no se ha mostrado, agregarlo al conjunto de IDs mostrados
       _displayedUserIds.add(otherUserId);
-      return ListTile(
-        title: Text(userName),
+      return InkWell(
         onTap: () {
           Navigator.push(
             context,
@@ -104,7 +104,42 @@ class _MessageListScreenState extends State<MessageListScreen> {
             ),
           );
         },
+        child: Card(
+          margin: EdgeInsets.all(8.0),
+          child: ListTile(
+            title: Text(userName),
+            subtitle: Text(lastMessage),
+          ),
+        ),
       );
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeLastMessages();
+  }
+
+  Future<void> _initializeLastMessages() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('messages')
+        .where('ids', arrayContains: widget.myUserId)
+        .orderBy('timestamp', descending: true)
+        .get();
+
+    for (final doc in snapshot.docs) {
+      final messageData = doc.data() as Map<String, dynamic>;
+      final ids = List<String>.from(messageData['ids'] ?? []);
+
+      final otherUserId = ids.firstWhere((id) => id != widget.myUserId);
+      final message = messageData['message'] ?? '';
+
+      if (!_lastMessages.containsKey(otherUserId)) {
+        _lastMessages[otherUserId] = message;
+      }
+    }
+
+    setState(() {});
   }
 }

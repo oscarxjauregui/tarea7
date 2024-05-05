@@ -182,8 +182,10 @@ class _MessageScreenState extends State<MessageScreen> {
         children: [
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream:
-                  FirebaseFirestore.instance.collection('messages').snapshots(),
+              stream: FirebaseFirestore.instance
+                  .collection('messages')
+                  .orderBy('timestamp', descending: true) // Ordenar por fecha
+                  .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return Center(child: CircularProgressIndicator());
