@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:tarea7/constant/callPage.dart';
+import 'package:tarea7/screens/group_chat_screen.dart';
 
 class GroupsScreen extends StatefulWidget {
   final String userId;
@@ -142,6 +144,15 @@ class _GroupsScreenState extends State<GroupsScreen> {
                     final groupId = filteredGroups[index].id;
                     return InkWell(
                       onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => GroupChatScreen(
+                              groupId: groupId,
+                              myUserId: currentUserId ?? '',
+                            ),
+                          ),
+                        );
                         // Implementa aquí la acción al hacer clic en el grupo
                       },
                       child: Card(
