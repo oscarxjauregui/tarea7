@@ -125,6 +125,12 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       appBar: AppBar(
         title: Text(_groupName),
         backgroundColor: Colors.blue,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
         actions: [
           IconButton(
             icon: Icon(Icons.call),

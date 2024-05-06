@@ -40,6 +40,21 @@ class _MessageScreenState extends State<MessageScreen> {
   final TextEditingController callIdController = TextEditingController();
   final String callID = '';
 
+  Future<String?> _getUserAvatarUrl(String userId) async {
+    try {
+      final avatarSnapshot = await FirebaseFirestore.instance
+          .collection('avatars')
+          .doc(userId)
+          .get();
+      if (avatarSnapshot.exists) {
+        return avatarSnapshot.get('imageUrl');
+      }
+    } catch (e) {
+      print('Error obteniendo avatar del usuario: $e');
+    }
+    return null;
+  }
+
   Future<void> _selectImage(ImageSource source) async {
     try {
       final pickedFile = await ImagePicker().pickImage(source: source);
@@ -76,7 +91,7 @@ class _MessageScreenState extends State<MessageScreen> {
 
       // Guardar el enlace de la imagen en Firestore
       await FirebaseFirestore.instance.collection('messages').add({
-        'ids': [widget.myUserId, widget.userId],
+        'ids': [widget.myUserId, widget.userId], // Almacenar IDs en una lista
         'message': '',
         'imageUrl':
             url, // Guardar el enlace de la imagen en la propiedad 'imageUrl'
@@ -160,16 +175,45 @@ class _MessageScreenState extends State<MessageScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_userName),
+        title: Row(
+          children: [
+            FutureBuilder<String?>(
+              future: _getUserAvatarUrl(widget.userId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return CircularProgressIndicator();
+                }
+                if (snapshot.hasError ||
+                    !snapshot.hasData ||
+                    snapshot.data == null) {
+                  // Si hay un error o no hay avatar, mostrar icono de usuario
+                  return CircleAvatar(
+                    child: Icon(Icons.person),
+                  );
+                }
+                // Mostrar el avatar del usuario en un círculo
+                return CircleAvatar(
+                  backgroundImage: NetworkImage(snapshot.data!),
+                );
+              },
+            ),
+            SizedBox(width: 10),
+            Text(_userName),
+          ],
+        ),
         backgroundColor: Colors.blue,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
         actions: [
           IconButton(
             icon: Icon(Icons.call),
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  // builder: (context) => CallPage(
-                  //   userName: _myUserName,
                   builder: (context) => Llamada(),
                 ),
               );

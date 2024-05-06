@@ -3,6 +3,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:tarea7/screens/groups_screen.dart';
 import 'package:tarea7/screens/message_list_screen.dart';
+import 'package:tarea7/screens/myuser_screen.dart';
 import 'package:tarea7/screens/select_avatar_screen.dart';
 import 'package:tarea7/screens/users_screen.dart';
 
@@ -98,12 +99,26 @@ class _HomeScreenState extends State<HomeScreen> {
               accountEmail: Text(userEmail ?? 'Cargando...'),
             ),
             ListTile(
+              leading: Icon(Icons.person),
+              title: Text('Mi perfil'),
+              subtitle: Text('Ver mi perfil'),
+              trailing: Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => MyUserScreen(userId: userId ?? ''),
+                  ),
+                );
+              },
+            ),
+            ListTile(
               leading: Icon(Icons.add_photo_alternate),
               title: Text('Seleccionar foto'),
               subtitle: Text('Cambiar foto de perfil'),
               trailing: Icon(Icons.chevron_right),
               onTap: () {
-                Navigator.pushReplacement(
+                Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) =>
