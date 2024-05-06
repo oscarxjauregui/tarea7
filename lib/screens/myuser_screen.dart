@@ -110,20 +110,14 @@ class _MyUserScreenState extends State<MyUserScreen> {
               ),
               SizedBox(height: 15),
               Text(
-                'Correo: $_userEmail',
+                '$_userEmail',
                 style: TextStyle(
-                  fontSize: 25,
+                  fontSize: 20,
                 ),
               ),
               SizedBox(height: 20),
               Text(
                 '$_userRole',
-                style: TextStyle(
-                  fontSize: 20,
-                ),
-              ),
-              Text(
-                '$_userCarrera',
                 style: TextStyle(
                   fontSize: 20,
                 ),

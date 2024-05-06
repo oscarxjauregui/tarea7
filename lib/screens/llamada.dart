@@ -26,8 +26,8 @@ class Llamada extends StatelessWidget {
                 onPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (context) => CallPage(
-                        callID: callIdController.text,
+                      builder: (context) => CallPage(callID: '123450935',
+                        // callID: callIdController.text,
                         userName: 'xd',
                       ),
                     ),

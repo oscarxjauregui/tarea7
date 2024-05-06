@@ -214,7 +214,9 @@ class _MessageScreenState extends State<MessageScreen> {
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => Llamada(),
+                  builder: (context) => CallPage(
+                    userName: _userName, callID: '3354653',
+                  ),
                 ),
               );
             },
@@ -422,25 +424,6 @@ class _MessageScreenState extends State<MessageScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class CallPage extends StatelessWidget {
-  final String userName;
-
-  const CallPage({Key? key, required this.userName}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Llamada con $userName'),
-        backgroundColor: Colors.blue,
-      ),
-      body: Center(
-        child: Text('Pantalla de Llamada'),
       ),
     );
   }
