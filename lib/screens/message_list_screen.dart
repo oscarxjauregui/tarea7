@@ -34,16 +34,6 @@ class _MessageListScreenState extends State<MessageListScreen> {
     return Scaffold(
       body: Column(
         children: [
-          // Sección de lista de mensajes de usuarios
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              'Chats',
-              textAlign: TextAlign.left, // Alineación a la izquierda
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w400),
-            ),
-          ),
-
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
