@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:tarea7/constant/callPage.dart';
+import 'package:tarea7/screens/home_screen.dart';
 import 'package:tarea7/screens/llamada.dart';
 
 class ImageController extends ChangeNotifier {
@@ -201,11 +202,18 @@ class _MessageScreenState extends State<MessageScreen> {
             Text(_userName),
           ],
         ),
-        backgroundColor: Colors.blue,
+        backgroundColor: Color.fromARGB(255, 15, 182, 104),
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.of(context).pop();
+            // Navigator.of(context).pop();
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => HomeScreen(
+                  userId: widget.myUserId,
+                ),
+              ),
+            );
           },
         ),
         actions: [
@@ -215,7 +223,8 @@ class _MessageScreenState extends State<MessageScreen> {
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => CallPage(
-                    userName: _userName, callID: '3354653',
+                    userName: _userName,
+                    callID: '3354653',
                   ),
                 ),
               );
@@ -273,7 +282,7 @@ class _MessageScreenState extends State<MessageScreen> {
                             padding: EdgeInsets.all(10),
                             decoration: BoxDecoration(
                               color: isMyMessage
-                                  ? Colors.blue[200]
+                                  ? Color.fromARGB(255, 141, 209, 177)
                                   : Colors.grey[200],
                               borderRadius: BorderRadius.only(
                                 topLeft: Radius.circular(16),
@@ -317,7 +326,7 @@ class _MessageScreenState extends State<MessageScreen> {
                             padding: EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: isMyMessage
-                                  ? Colors.blue[200]
+                                  ? Color.fromARGB(255, 141, 209, 177)
                                   : Colors.grey[200],
                               borderRadius: BorderRadius.only(
                                 topLeft: Radius.circular(

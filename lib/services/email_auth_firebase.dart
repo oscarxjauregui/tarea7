@@ -44,6 +44,7 @@ class EmailAuthFirebase {
     return band;
   }
 }
+
   /*Future<void> uploadImage(String userId, File imageFile) async {
     try {
       final storageRef =

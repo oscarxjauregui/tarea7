@@ -16,7 +16,6 @@ class UsersScreen extends StatefulWidget {
 
 class _UsersScreenState extends State<UsersScreen> {
   TextEditingController _searchController = TextEditingController();
-
   String _otherUserName = 'Cargando...';
 
   @override
@@ -31,6 +30,9 @@ class _UsersScreenState extends State<UsersScreen> {
               decoration: InputDecoration(
                 hintText: 'Buscar por nombre o correo electrónico...',
                 prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               onChanged: (value) {
                 setState(() {});
@@ -66,37 +68,41 @@ class _UsersScreenState extends State<UsersScreen> {
                     final userData =
                         filteredUsers[index].data() as Map<String, dynamic>;
                     final userId = filteredUsers[index].id;
-                    return ListTile(
-                      title: Text(userData['nombre'] ?? ''),
-                      subtitle: Text(userData['email'] ?? ''),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.message),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => MessageScreen(
-                                    userId: userId ?? '',
-                                    myUserId: widget.myUserId,
+                    return Card(
+                      margin:
+                          EdgeInsets.symmetric(vertical: 8.0, horizontal: 1.0),
+                      child: ListTile(
+                        title: Text(userData['nombre'] ?? ''),
+                        subtitle: Text(userData['email'] ?? ''),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.message),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => MessageScreen(
+                                      userId: userId,
+                                      myUserId: widget.myUserId,
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.group_add),
-                            onPressed: () {
-                              _showAddToGroupBottomSheet(context, userId);
-                            },
-                          ),
-                        ],
+                                );
+                              },
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.group_add),
+                              onPressed: () {
+                                _showAddToGroupBottomSheet(context, userId);
+                              },
+                            ),
+                          ],
+                        ),
+                        onTap: () {
+                          _getOtherUserName(userId);
+                        },
                       ),
-                      onTap: () {
-                        _getOtherUserName(userId);
-                      },
                     );
                   },
                 );
@@ -112,60 +118,101 @@ class _UsersScreenState extends State<UsersScreen> {
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
-        return StreamBuilder(
-          stream: FirebaseFirestore.instance.collection('groups').snapshots(),
-          builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+        return FutureBuilder(
+          future: _getAvailableGroups(userId),
+          builder:
+              (context, AsyncSnapshot<List<QueryDocumentSnapshot>> snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Center(child: CircularProgressIndicator());
             }
             if (snapshot.hasError) {
               return Center(child: Text('Error: ${snapshot.error}'));
             }
-            final groups = snapshot.data?.docs ?? [];
-            return ListView.builder(
-              itemCount: groups.length,
-              itemBuilder: (context, index) {
-                final groupData = groups[index].data() as Map<String, dynamic>;
-                final groupId = groups[index].id;
-                final groupName = groupData['nombre'] ?? '';
-                final groupDescription = groupData['descripcion'] ?? '';
-                return InkWell(
-                  child: Card(
-                    margin:
-                        EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                    child: ListTile(
-                      title: Text(
-                        groupName,
-                        style: TextStyle(
-                          fontSize: 16.0,
+            final groups = snapshot.data ?? [];
+            return Container(
+              height: 300,
+              child: ListView.builder(
+                itemCount: groups.length,
+                itemBuilder: (context, index) {
+                  final groupData =
+                      groups[index].data() as Map<String, dynamic>;
+                  final groupId = groups[index].id;
+                  final groupName = groupData['nombre'] ?? '';
+                  final groupDescription = groupData['descripcion'] ?? '';
+                  return InkWell(
+                    child: Card(
+                      margin:
+                          EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                      child: ListTile(
+                        title: Text(
+                          groupName,
+                          style: TextStyle(
+                            fontSize: 16.0,
+                          ),
+                        ),
+                        subtitle: Text(groupDescription),
+                        trailing: IconButton(
+                          icon: Icon(Icons.add),
+                          onPressed: () async {
+                            final isAlreadyInGroup =
+                                await _checkIfUserInGroup(userId, groupId);
+                            if (isAlreadyInGroup) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(SnackBar(
+                                content: Text(
+                                    'No se puede agregar, el usuario ya está en este grupo'),
+                              ));
+                            } else {
+                              _addToGroup(userId, groupId);
+                              Navigator.pop(context); // Cerrar el BottomSheet
+                            }
+                          },
                         ),
                       ),
-                      subtitle: Text(groupDescription),
-                      trailing: IconButton(
-                        icon: Icon(Icons.add),
-                        onPressed: () async {
-                          final isAlreadyInGroup =
-                              await _checkIfUserInGroup(userId, groupId);
-                          if (isAlreadyInGroup) {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text('No se puede agregar, el usuario ya está en este grupo'),
-                            ));
-                          } else {
-                            _addToGroup(userId, groupId);
-                            Navigator.pop(context); // Cerrar el BottomSheet
-                          }
-                        },
-                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             );
           },
         );
       },
     );
+  }
+
+  Future<List<QueryDocumentSnapshot>> _getAvailableGroups(String userId) async {
+    try {
+      // Obtener los grupos en los que el usuario actual está registrado
+      final myGroupsSnapshot = await FirebaseFirestore.instance
+          .collection('group-user')
+          .where('userId', isEqualTo: widget.myUserId)
+          .get();
+
+      final myGroupIds =
+          myGroupsSnapshot.docs.map((doc) => doc['groupId']).toSet();
+
+      // Obtener los grupos en los que el otro usuario está registrado
+      final otherUserGroupsSnapshot = await FirebaseFirestore.instance
+          .collection('group-user')
+          .where('userId', isEqualTo: userId)
+          .get();
+
+      final otherUserGroupIds =
+          otherUserGroupsSnapshot.docs.map((doc) => doc['groupId']).toSet();
+
+      // Obtener los grupos que están en myGroupIds y no están en otherUserGroupIds
+      final availableGroupsSnapshot = await FirebaseFirestore.instance
+          .collection('groups')
+          .where(FieldPath.documentId,
+              whereIn: myGroupIds.difference(otherUserGroupIds).toList())
+          .get();
+
+      return availableGroupsSnapshot.docs;
+    } catch (e) {
+      print('Error al obtener los grupos disponibles: $e');
+      return [];
+    }
   }
 
   Future<bool> _checkIfUserInGroup(String userId, String groupId) async {

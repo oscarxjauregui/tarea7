@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:tarea7/screens/login_screen.dart';
 import 'package:tarea7/services/email_auth_firebase.dart';
@@ -13,11 +12,8 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  // final usersRef = FirebaseFirestore.instance.collection('users');
   final UsersFirebase _usersFirebase = UsersFirebase();
-  String? _selectedMethod;
   final TextEditingController _nombreController = TextEditingController();
-  final TextEditingController _rolController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -29,6 +25,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   ];
 
   String? _selectedRol;
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -39,10 +36,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
           _selectedRol = newValue;
         });
       },
-      decoration: const InputDecoration(
-        border: OutlineInputBorder(),
+      decoration: InputDecoration(
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
         hintText: 'Seleccione un rol',
         labelText: 'Rol',
+        prefixIcon: Icon(Icons.person),
       ),
       items: roles.map((String value) {
         return DropdownMenuItem<String>(
@@ -60,141 +60,142 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Registrarse'),
+        title: Text(
+          'Registrarse',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: Color.fromARGB(255, 15, 182, 104),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                SizedBox(height: 80),
-                TextFormField(
-                  controller: _nombreController,
-                  keyboardType: TextInputType.name,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'Ingresa el nombre',
-                    labelText: 'Nombre',
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Ingrese el nombre';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 10),
-                dropdownRol,
-                SizedBox(height: 10),
-                // Text(
-                //   'Seleccione el metodo de registro: ',
-                //   style: TextStyle(fontSize: 18),
-                // ),
-                SizedBox(height: 10),
-                DropdownButtonFormField<String>(
-                  value: _selectedMethod,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedMethod = value;
-                    });
-                  },
-                  items: [
-                    DropdownMenuItem(
-                      value: 'Celular',
-                      child: Text(' Celular'),
+      body: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        height: MediaQuery.of(context).size.height,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color.fromARGB(255, 255, 255, 255),
+              Color.fromARGB(255, 225, 225, 225)
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Crear Cuenta',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: const Color.fromARGB(255, 0, 0, 0),
                     ),
-                    DropdownMenuItem(
-                      value: 'Correo institucional',
-                      child: Text('Correo institucional'),
-                    ),
-                  ],
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'Selecciona el metodo',
-                    labelText: 'Metodo de registro',
+                    textAlign: TextAlign.center,
                   ),
-                ),
-                SizedBox(height: 10),
-                if (_selectedMethod == 'Celular') ...[
+                  const SizedBox(height: 20),
                   TextFormField(
-                    controller: _phoneController,
-                    keyboardType: TextInputType.phone,
+                    controller: _nombreController,
+                    keyboardType: TextInputType.name,
                     decoration: InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: 'Ingresa el numero',
-                      labelText: 'Numero de telefono',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      hintText: 'Ingresa el nombre',
+                      labelText: 'Nombre',
+                      prefixIcon: Icon(Icons.person),
                     ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Ingrese el nombre';
+                      }
+                      return null;
+                    },
                   ),
-                ],
-                if (_selectedMethod == 'Correo institucional') ...[
+                  const SizedBox(height: 20),
+                  dropdownRol,
+                  const SizedBox(height: 20),
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Ingresa un correo electronico';
-                      } /*else if (!value.endsWith('@itcelaya.edu.mx')) {
+                        return 'Ingresa un correo electrónico';
+                      } else if (!value.endsWith('@itcelaya.edu.mx')) {
                         return 'Ingresa un correo institucional';
-                      }*/
+                      }
                       return null;
                     },
                     decoration: InputDecoration(
-                      border: OutlineInputBorder(),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       hintText: 'Ingresa el correo',
                       labelText: 'Correo institucional',
+                      prefixIcon: Icon(Icons.email),
                     ),
                   ),
-                ],
-                SizedBox(height: 10),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, ingresa tu contraseña';
-                    }
-                    return null;
-                  },
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'Ingresa la contraseña',
-                    labelText: 'Contraseña',
-                  ),
-                ),
-                SizedBox(height: 10),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (_formKey.currentState!.validate()) {
-                      if (_selectedMethod == 'Correo institucional') {
-                        await _usersFirebase.insertar(
-                          {
-                            'nombre': _nombreController.text,
-                            'email': _emailController.text,
-                            'telefono': _phoneController.text,
-                            'rol': _selectedRol,
-                          },
-                        );
-
-                        // final email = _emailController.text.trim();
-                        // final password = _passwordController.text.trim();
-                        // final success = await _emailAuthFirebase.signUpUser(
-                        //   email: email,
-                        //   password: password,
-                        // );
-                        _emailAuthFirebase.signUpUser(
-                            email: _emailController.text,
-                            password: _passwordController.text);
-                        print('Registro exitoso');
-                        Navigator.pop(context);
+                  const SizedBox(height: 20),
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Por favor, ingresa tu contraseña';
                       }
-                    }
-                  },
-                  child: Text('Registrarse'),
-                ),
-              ],
+                      return null;
+                    },
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      hintText: 'Ingresa la contraseña',
+                      labelText: 'Contraseña',
+                      prefixIcon: Icon(Icons.lock),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _isLoading
+                      ? Center(child: CircularProgressIndicator())
+                      : ElevatedButton(
+                          onPressed: () async {
+                            if (_formKey.currentState!.validate()) {
+                              setState(() {
+                                _isLoading = true;
+                              });
+                              await _usersFirebase.insertar({
+                                'nombre': _nombreController.text,
+                                'email': _emailController.text,
+                                'telefono': _phoneController.text,
+                                'rol': _selectedRol,
+                              });
+                              await _emailAuthFirebase.signUpUser(
+                                  email: _emailController.text,
+                                  password: _passwordController.text);
+                              setState(() {
+                                _isLoading = false;
+                              });
+                              print('Registro exitoso');
+                              Navigator.pop(context);
+                            }
+                          },
+                          child: Text('Registrarse'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color.fromARGB(255, 15, 182, 104),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                ],
+              ),
             ),
           ),
         ),

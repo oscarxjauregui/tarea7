@@ -23,10 +23,12 @@ class UsersFirebase {
     return _usersCollection!.doc(id).delete();
   }
 
-  Future<bool> consultarEmail(String email) async {
-    final querySnapshot =
-        await _usersCollection!.where('email', isEqualTo: email).limit(1).get();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-    return querySnapshot.docs.isNotEmpty;
+  Future<QuerySnapshot> consultarPorEmail(String email) async {
+    return await _firestore
+        .collection('users')
+        .where('email', isEqualTo: email)
+        .get();
   }
 }

@@ -124,7 +124,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_groupName),
-        backgroundColor: Colors.blue,
+        backgroundColor: Color.fromARGB(255, 15, 182, 104),
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
@@ -191,8 +191,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                         margin:
                             EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                         decoration: BoxDecoration(
-                          color:
-                              isMyMessage ? Colors.blue[200] : Colors.grey[200],
+                          color: isMyMessage
+                              ? Color.fromARGB(255, 141, 209, 177)
+                              : Colors.grey[200],
                           borderRadius: BorderRadius.only(
                             topLeft: Radius.circular(16),
                             topRight: Radius.circular(16),

@@ -59,6 +59,7 @@ class _MyUserScreenState extends State<MyUserScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Color.fromARGB(255, 15, 182, 104), // Color de WhatsApp
         title: Text('Mi perfil'),
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
@@ -77,6 +78,7 @@ class _MyUserScreenState extends State<MyUserScreen> {
               SizedBox(height: 20),
               CircleAvatar(
                 radius: 100,
+                backgroundColor: Colors.grey[300], // Color de fondo del avatar
                 backgroundImage: _userAvatarUrl.isNotEmpty
                     ? NetworkImage(_userAvatarUrl)
                     : AssetImage('assets/default_avatar.png') as ImageProvider,
@@ -96,7 +98,7 @@ class _MyUserScreenState extends State<MyUserScreen> {
                   'Cambiar imagen',
                   style: TextStyle(
                     fontSize: 18,
-                    color: Colors.blue,
+                    color: Color(0xFF075E54), // Color principal de WhatsApp
                     decoration: TextDecoration.underline,
                   ),
                 ),
@@ -106,6 +108,7 @@ class _MyUserScreenState extends State<MyUserScreen> {
                 '$_userName',
                 style: TextStyle(
                   fontSize: 30,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
               SizedBox(height: 15),
@@ -113,6 +116,7 @@ class _MyUserScreenState extends State<MyUserScreen> {
                 '$_userEmail',
                 style: TextStyle(
                   fontSize: 20,
+                  color: Colors.grey[700], // Color de texto secundario
                 ),
               ),
               SizedBox(height: 20),
@@ -120,6 +124,7 @@ class _MyUserScreenState extends State<MyUserScreen> {
                 '$_userRole',
                 style: TextStyle(
                   fontSize: 20,
+                  color: Colors.grey[700], // Color de texto secundario
                 ),
               ),
             ],
