@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:video_player/video_player.dart';
 import 'package:tarea7/constant/callPage.dart';
 import 'package:tarea7/screens/home_screen.dart';
 import 'package:tarea7/screens/llamada.dart';
@@ -103,6 +104,38 @@ class _MessageScreenState extends State<MessageScreen> {
     }
   }
 
+  Future<void> _uploadVideo(File videoFile) async {
+    try {
+      // Nombre del archivo en el almacenamiento de Firebase
+      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
+
+      // Referencia al directorio en el almacenamiento de Firebase
+      Reference firebaseStorageRef =
+          FirebaseStorage.instance.ref().child('videos/$fileName.mp4');
+
+      // Subir el archivo al almacenamiento de Firebase
+      UploadTask uploadTask = firebaseStorageRef.putFile(videoFile);
+
+      // Obtener la URL de descarga una vez que se complete la carga
+      TaskSnapshot taskSnapshot = await uploadTask;
+      String url = await taskSnapshot.ref.getDownloadURL();
+
+      // Mostrar mensaje en consola para confirmar que el video se subió correctamente
+      print('Video subido correctamente. URL: $url');
+
+      // Guardar el enlace del video en Firestore
+      await FirebaseFirestore.instance.collection('messages').add({
+        'ids': [widget.myUserId, widget.userId], // Almacenar IDs en una lista
+        'message': '',
+        'videoUrl':
+            url, // Guardar el enlace del video en la propiedad 'videoUrl'
+        'timestamp': DateTime.now(),
+      });
+    } catch (e) {
+      print("Error al subir el video al almacenamiento de Firebase: $e");
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -164,8 +197,8 @@ class _MessageScreenState extends State<MessageScreen> {
       final pickedFile =
           await ImagePicker().pickVideo(source: ImageSource.gallery);
       if (pickedFile != null) {
-        // Aquí puedes implementar la lógica para subir el video seleccionado
-        // _uploadVideo(File(pickedFile.path));
+        // Subir el video al almacenamiento de Firebase
+        _uploadVideo(File(pickedFile.path));
       }
     } catch (e) {
       print("Error al seleccionar el video: $e");
@@ -310,6 +343,50 @@ class _MessageScreenState extends State<MessageScreen> {
                             ),
                           ),
                         );
+                      } else if (messageData.containsKey('videoUrl')) {
+                        return Align(
+                          alignment: isMyMessage
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                          child: Container(
+                            constraints: BoxConstraints(
+                              maxWidth: MediaQuery.of(context).size.width *
+                                  0.8, // Ancho máximo del contenedor
+                            ),
+                            margin: EdgeInsets.symmetric(
+                                vertical: 4, horizontal: 8),
+                            padding: EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: isMyMessage
+                                  ? Color.fromARGB(255, 141, 209, 177)
+                                  : Colors.grey[200],
+                              borderRadius: BorderRadius.only(
+                                topLeft: Radius.circular(16),
+                                topRight: Radius.circular(16),
+                                bottomLeft: isMyMessage
+                                    ? Radius.circular(16)
+                                    : Radius.zero,
+                                bottomRight: isMyMessage
+                                    ? Radius.zero
+                                    : Radius.circular(16),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Mostramos el texto del mensaje
+                                if (messageData.containsKey('message'))
+                                  Text(messageData['message'],
+                                      style: TextStyle(fontSize: 16)),
+                                // Mostramos el video
+                                VideoPlayerWidget(
+                                    videoUrl: messageData['videoUrl']),
+                                SizedBox(height: 4),
+                                Text('Enviado: $timestamp'),
+                              ],
+                            ),
+                          ),
+                        );
                       } else {
                         return Align(
                           alignment: isMyMessage
@@ -382,7 +459,7 @@ class _MessageScreenState extends State<MessageScreen> {
                 IconButton(
                   icon: Icon(Icons.image),
                   onPressed: () {
-                    // Mostrar el BottomSheet para seleccionar la imagen
+                    // Mostrar el BottomSheet para seleccionar la imagen o video
                     showModalBottomSheet(
                       context: context,
                       builder: (BuildContext context) {
@@ -435,6 +512,44 @@ class _MessageScreenState extends State<MessageScreen> {
         ],
       ),
     );
+  }
+}
+
+class VideoPlayerWidget extends StatefulWidget {
+  final String videoUrl;
+
+  const VideoPlayerWidget({Key? key, required this.videoUrl}) : super(key: key);
+
+  @override
+  _VideoPlayerWidgetState createState() => _VideoPlayerWidgetState();
+}
+
+class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
+  late VideoPlayerController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = VideoPlayerController.network(widget.videoUrl)
+      ..initialize().then((_) {
+        setState(() {});
+      });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _controller.value.isInitialized
+        ? AspectRatio(
+            aspectRatio: _controller.value.aspectRatio,
+            child: VideoPlayer(_controller),
+          )
+        : Center(child: CircularProgressIndicator());
   }
 }
 

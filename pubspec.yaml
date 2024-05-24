@@ -44,6 +44,8 @@ dependencies:
   provider: ^5.0.0
   zego_uikit_prebuilt_call: ^4.9.0
   intl: ^0.17.0
+  video_player: ^2.2.11
+  # chewie: ^1.2.2
   # image_picker: ^1.0.7
   # provider: ^5.0.0
   # google_sign_in: ^6.2.1
