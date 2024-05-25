@@ -1,10 +1,12 @@
 import 'dart:io';
-
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:tarea7/constant/callGroup.dart';
+import 'package:video_player/video_player.dart';
+import 'package:advance_pdf_viewer_fork/advance_pdf_viewer_fork.dart';
 
 class ImageController extends ChangeNotifier {
   File? _imageFile;
@@ -77,13 +79,16 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     }
   }
 
-  Future<void> _sendMessage(String message, {String? imageUrl}) async {
+  Future<void> _sendMessage(String message,
+      {String? imageUrl, String? videoUrl, String? pdfUrl}) async {
     try {
       await FirebaseFirestore.instance.collection('group-messages').add({
         'groupId': widget.groupId,
         'userId': widget.myUserId,
         'message': message,
         'imageUrl': imageUrl,
+        'videoUrl': videoUrl,
+        'pdfUrl': pdfUrl,
         'timestamp': DateTime.now(),
       });
       _messageController.clear();
@@ -119,6 +124,77 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     }
   }
 
+  Future<void> _uploadVideo(File videoFile) async {
+    try {
+      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
+      Reference firebaseStorageRef =
+          FirebaseStorage.instance.ref().child('videos/$fileName.mp4');
+      UploadTask uploadTask = firebaseStorageRef.putFile(videoFile);
+      TaskSnapshot taskSnapshot = await uploadTask;
+      String url = await taskSnapshot.ref.getDownloadURL();
+      print('Video subido correctamente. URL: $url');
+      _sendMessage('', videoUrl: url);
+    } catch (e) {
+      print("Error al subir el video al almacenamiento de Firebase: $e");
+    }
+  }
+
+  Future<void> _selectVideo() async {
+    try {
+      final pickedFile =
+          await ImagePicker().pickVideo(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        _uploadVideo(File(pickedFile.path));
+      }
+    } catch (e) {
+      print("Error al seleccionar el video: $e");
+    }
+  }
+
+  Future<void> _selectPdf() async {
+    try {
+      final pickedFile = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+      if (pickedFile != null && pickedFile.files.single.path != null) {
+        File pdfFile = File(pickedFile.files.single.path!);
+        _uploadPdf(pdfFile);
+      }
+    } catch (e) {
+      print("Error al seleccionar el PDF: $e");
+    }
+  }
+
+  Future<void> _uploadPdf(File pdfFile) async {
+    try {
+      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
+      Reference firebaseStorageRef =
+          FirebaseStorage.instance.ref().child('pdfs/$fileName.pdf');
+      UploadTask uploadTask = firebaseStorageRef.putFile(pdfFile);
+      TaskSnapshot taskSnapshot = await uploadTask;
+      String url = await taskSnapshot.ref.getDownloadURL();
+      print('PDF subido correctamente. URL: $url');
+      _sendMessage('', pdfUrl: url);
+    } catch (e) {
+      print("Error al subir el PDF al almacenamiento de Firebase: $e");
+    }
+  }
+
+  Future<void> _showPdf(BuildContext context, String pdfUrl) async {
+    try {
+      PDFDocument document = await PDFDocument.fromURL(pdfUrl);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PDFViewer(document: document),
+        ),
+      );
+    } catch (e) {
+      print("Error al mostrar el PDF: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -143,7 +219,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   ),
                 ),
               );
-              // Implementa la acción de la llamada aquí
             },
           ),
         ],
@@ -177,8 +252,11 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                     final String userId = messageData['userId'];
                     final String message = messageData['message'] ?? '';
                     final String imageUrl = messageData['imageUrl'] ?? '';
-                    final String timestamp =
-                        '${messageData['timestamp']?.toDate().day}-${messageData['timestamp']?.toDate().month}-${messageData['timestamp']?.toDate().year} ${messageData['timestamp']?.toDate().hour}:${messageData['timestamp']?.toDate().minute}';
+                    final String videoUrl = messageData['videoUrl'] ?? '';
+                    final String pdfUrl = messageData['pdfUrl'] ?? '';
+                    final timestamp = messageData['timestamp'].toDate();
+                    final formattedTime =
+                        '${timestamp.hour}:${timestamp.minute}';
 
                     final bool isMyMessage = userId == widget.myUserId;
 
@@ -218,8 +296,24 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                               ),
                             if (imageUrl.isNotEmpty) SizedBox(height: 4),
                             if (imageUrl.isNotEmpty) Image.network(imageUrl),
+                            if (videoUrl.isNotEmpty) SizedBox(height: 4),
+                            if (videoUrl.isNotEmpty)
+                              VideoPlayerWidget(videoUrl: videoUrl),
+                            if (pdfUrl.isNotEmpty) SizedBox(height: 4),
+                            if (pdfUrl.isNotEmpty)
+                              GestureDetector(
+                                onTap: () => _showPdf(context, pdfUrl),
+                                child: Text(
+                                  'Ver archivo',
+                                  style: TextStyle(
+                                    color: Colors.blue,
+                                    // decoration: TextDecoration.underline,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
                             Text(
-                              timestamp,
+                              formattedTime,
                               style: TextStyle(
                                   fontSize: 12, color: Colors.black54),
                             ),
@@ -248,7 +342,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.image),
+                  icon: Icon(Icons.attach_file),
                   onPressed: () {
                     showModalBottomSheet(
                       context: context,
@@ -270,6 +364,22 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                 title: Text('Desde la galería'),
                                 onTap: () {
                                   _selectImage(ImageSource.gallery);
+                                  Navigator.pop(context);
+                                },
+                              ),
+                              ListTile(
+                                leading: Icon(Icons.video_library),
+                                title: Text('Subir video'),
+                                onTap: () {
+                                  _selectVideo();
+                                  Navigator.pop(context);
+                                },
+                              ),
+                              ListTile(
+                                leading: Icon(Icons.picture_as_pdf),
+                                title: Text('Enviar PDF'),
+                                onTap: () {
+                                  _selectPdf();
                                   Navigator.pop(context);
                                 },
                               ),
@@ -296,4 +406,114 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       ),
     );
   }
+}
+
+class VideoPlayerWidget extends StatefulWidget {
+  final String videoUrl;
+
+  const VideoPlayerWidget({Key? key, required this.videoUrl}) : super(key: key);
+
+  @override
+  _VideoPlayerWidgetState createState() => _VideoPlayerWidgetState();
+}
+
+class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
+  late VideoPlayerController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl))
+      ..initialize().then((_) {
+        setState(() {});
+      });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _controller.value.isInitialized
+        ? AspectRatio(
+            aspectRatio: _controller.value.aspectRatio,
+            child: Stack(
+              alignment: Alignment.bottomCenter,
+              children: <Widget>[
+                VideoPlayer(_controller),
+                ControlsOverlay(controller: _controller),
+                VideoProgressIndicator(_controller, allowScrubbing: true),
+              ],
+            ),
+          )
+        : Center(child: CircularProgressIndicator());
+  }
+}
+
+class ControlsOverlay extends StatelessWidget {
+  const ControlsOverlay({Key? key, required this.controller}) : super(key: key);
+
+  final VideoPlayerController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: <Widget>[
+        AnimatedSwitcher(
+          duration: Duration(milliseconds: 50),
+          reverseDuration: Duration(milliseconds: 200),
+          child: controller.value.isPlaying
+              ? const SizedBox.shrink()
+              : Container(
+                  color: Colors.black26,
+                  child: const Center(
+                    // child: Icon(
+                    //   Icons.play_arrow,
+                    //   color: Colors.white,
+                    //   size: 100.0,
+                    //   semanticLabel: 'Play',
+                    // ),
+                  ),
+                ),
+        ),
+        GestureDetector(
+          onTap: () {
+            controller.value.isPlaying ? controller.pause() : controller.play();
+          },
+        ),
+        Align(
+          alignment: Alignment.topRight,
+          child: PopupMenuButton<double>(
+            initialValue: controller.value.playbackSpeed,
+            tooltip: 'Playback speed',
+            onSelected: (double speed) {
+              controller.setPlaybackSpeed(speed);
+            },
+            itemBuilder: (BuildContext context) {
+              return <PopupMenuItem<double>>[
+                for (final double speed in [0.5, 1.0, 1.5, 2.0])
+                  PopupMenuItem<double>(
+                    value: speed,
+                    child: Text('${speed}x'),
+                  )
+              ];
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text('${controller.value.playbackSpeed}x'),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+void main() {
+  runApp(MaterialApp(
+    home: GroupChatScreen(groupId: 'group_id', myUserId: 'user_id'),
+  ));
 }

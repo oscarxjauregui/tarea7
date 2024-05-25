@@ -147,6 +147,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Por favor, ingresa tu contraseña';
+                      } else if (value.length < 8) {
+                        return 'La contraseña debe tener al menos 8 caracteres,\n una letra mayúscula y un numero';
+                      } else if (!RegExp(r'(?=.*[A-Z])').hasMatch(value)) {
+                        return 'La contraseña debe tener al menos 8 caracteres,\n una letra mayúscula y un numero';
+                      } else if (!RegExp(r'(?=.*\d)').hasMatch(value)) {
+                        return 'La contraseña debe tener al menos 8 caracteres,\n una letra mayúscula y un numero';
                       }
                       return null;
                     },

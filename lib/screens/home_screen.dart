@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:tarea7/screens/groups_screen.dart';
+import 'package:tarea7/screens/login_screen.dart';
 import 'package:tarea7/screens/message_list_screen.dart';
 import 'package:tarea7/screens/myuser_screen.dart';
 import 'package:tarea7/screens/select_avatar_screen.dart';
@@ -157,6 +158,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.pop(context);
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => LoginScreen(),
+                    ),
+                  );
                 },
               ),
             ],

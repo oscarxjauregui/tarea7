@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'package:advance_pdf_viewer_fork/advance_pdf_viewer_fork.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
@@ -387,6 +389,59 @@ class _MessageScreenState extends State<MessageScreen> {
                             ),
                           ),
                         );
+                      } else if (messageData.containsKey('pdfUrl')) {
+                        final isMyMessage = ids.indexOf(widget.myUserId) == 0;
+                        return Align(
+                          alignment: isMyMessage
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                          child: Container(
+                            constraints: BoxConstraints(
+                              maxWidth: MediaQuery.of(context).size.width * 0.8,
+                            ),
+                            margin: EdgeInsets.symmetric(
+                                vertical: 4, horizontal: 8),
+                            padding: EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: isMyMessage
+                                  ? Color.fromARGB(255, 141, 209, 177)
+                                  : Colors.grey[200],
+                              borderRadius: BorderRadius.only(
+                                topLeft: Radius.circular(16),
+                                topRight: Radius.circular(16),
+                                bottomLeft: isMyMessage
+                                    ? Radius.circular(16)
+                                    : Radius.zero,
+                                bottomRight: isMyMessage
+                                    ? Radius.zero
+                                    : Radius.circular(16),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Mostrar el texto 'Ver archivo'
+                                InkWell(
+                                  onTap: () {
+                                    _showPdf(context, messageData['pdfUrl']);
+                                  },
+                                  child: Text(
+                                    'Ver archivo',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue, // Color del enlace
+                                      fontSize: 16,
+                                      // decoration:
+                                      // TextDecoration.underline, // Subrayado
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text('Enviado: $timestamp'),
+                              ],
+                            ),
+                          ),
+                        );
                       } else {
                         return Align(
                           alignment: isMyMessage
@@ -457,7 +512,7 @@ class _MessageScreenState extends State<MessageScreen> {
                   ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.image),
+                  icon: Icon(Icons.attach_file),
                   onPressed: () {
                     // Mostrar el BottomSheet para seleccionar la imagen o video
                     showModalBottomSheet(
@@ -491,6 +546,14 @@ class _MessageScreenState extends State<MessageScreen> {
                                   Navigator.pop(context);
                                 },
                               ),
+                              ListTile(
+                                leading: Icon(Icons.picture_as_pdf),
+                                title: Text('Seleccionar PDF'),
+                                onTap: () {
+                                  _selectPdf();
+                                  Navigator.pop(context);
+                                },
+                              ),
                             ],
                           ),
                         );
@@ -513,6 +576,56 @@ class _MessageScreenState extends State<MessageScreen> {
       ),
     );
   }
+
+  Future<void> _selectPdf() async {
+    try {
+      final pickedFile = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+      if (pickedFile != null && pickedFile.files.single.path != null) {
+        File pdfFile = File(pickedFile.files.single.path!);
+        _uploadPdf(pdfFile);
+      }
+    } catch (e) {
+      print("Error al seleccionar el PDF: $e");
+    }
+  }
+
+  Future<void> _uploadPdf(File pdfFile) async {
+    try {
+      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
+      Reference firebaseStorageRef =
+          FirebaseStorage.instance.ref().child('pdfs/$fileName.pdf');
+      UploadTask uploadTask = firebaseStorageRef.putFile(pdfFile);
+      TaskSnapshot taskSnapshot = await uploadTask;
+      String url = await taskSnapshot.ref.getDownloadURL();
+      print('PDF subido correctamente. URL: $url');
+      await FirebaseFirestore.instance.collection('messages').add({
+        'ids': [widget.myUserId, widget.userId],
+        'message': '',
+        'pdfUrl': url,
+        'timestamp': DateTime.now(),
+      });
+    } catch (e) {
+      print("Error al subir el PDF al almacenamiento de Firebase: $e");
+    }
+  }
+}
+
+Future<void> _showPdf(BuildContext context, String pdfUrl) async {
+  // Agrega el parámetro de contexto aquí
+  try {
+    PDFDocument document = await PDFDocument.fromURL(pdfUrl);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PDFViewer(document: document),
+      ),
+    );
+  } catch (e) {
+    print("Error al mostrar el PDF: $e");
+  }
 }
 
 class VideoPlayerWidget extends StatefulWidget {
@@ -530,7 +643,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.network(widget.videoUrl)
+    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl))
       ..initialize().then((_) {
         setState(() {});
       });
@@ -547,9 +660,75 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
     return _controller.value.isInitialized
         ? AspectRatio(
             aspectRatio: _controller.value.aspectRatio,
-            child: VideoPlayer(_controller),
+            child: Stack(
+              alignment: Alignment.bottomCenter,
+              children: <Widget>[
+                VideoPlayer(_controller),
+                ControlsOverlay(controller: _controller),
+                VideoProgressIndicator(_controller, allowScrubbing: true),
+              ],
+            ),
           )
         : Center(child: CircularProgressIndicator());
+  }
+}
+
+class ControlsOverlay extends StatelessWidget {
+  const ControlsOverlay({Key? key, required this.controller}) : super(key: key);
+
+  final VideoPlayerController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: <Widget>[
+        AnimatedSwitcher(
+          duration: Duration(milliseconds: 50),
+          reverseDuration: Duration(milliseconds: 200),
+          child: controller.value.isPlaying
+              ? const SizedBox.shrink()
+              : Container(
+                  color: Colors.black26,
+                  child: const Center(
+                      // child: Icon(
+                      //   Icons.play_arrow,
+                      //   color: Colors.white,
+                      //   size: 100.0,
+                      //   semanticLabel: 'Play',
+                      // ),
+                      ),
+                ),
+        ),
+        GestureDetector(
+          onTap: () {
+            controller.value.isPlaying ? controller.pause() : controller.play();
+          },
+        ),
+        Align(
+          alignment: Alignment.topRight,
+          child: PopupMenuButton<double>(
+            initialValue: controller.value.playbackSpeed,
+            tooltip: 'Playback speed',
+            onSelected: (double speed) {
+              controller.setPlaybackSpeed(speed);
+            },
+            itemBuilder: (BuildContext context) {
+              return <PopupMenuItem<double>>[
+                for (final double speed in [0.5, 1.0, 1.5, 2.0])
+                  PopupMenuItem<double>(
+                    value: speed,
+                    child: Text('${speed}x'),
+                  )
+              ];
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text('${controller.value.playbackSpeed}x'),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 
